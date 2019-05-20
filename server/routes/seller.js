@@ -1,27 +1,25 @@
 const router = require('express').Router();
 const Product = require('../models/product');
+require('dotenv').config();
+const checkJWT = require('../middlewares/check-jwt');
 
-const aws = require('aws-sdk');
-const multer = require('multer');
-const multerS3 = require('multer-s3');
-const s3 = new aws.S3({ accessKeyId: "AKIAIBR5G5OP47EVSYJA", secretAccessKey: "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" });
+// const multer = require("multer");
+// const cloudinary = require("cloudinary");
+// const cloudinaryStorage = require("multer-storage-cloudinary");
 
-// const faker = require('faker');
+// cloudinary.config({
+//   cloud_name: process.env.CLOUD_NAME,
+//   api_key: process.env.API_ID,
+//   api_secret: process.env.API_SECRET
+// });
 
- const checkJWT = require('../middlewares/check-jwt');
-
-var upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: 'amazonowebapplication',
-    metadata: function (req, file, cb) {
-      cb(null, {fieldName: file.fieldname});
-    },
-    key: function (req, file, cb) {
-      cb(null, Date.now().toString())  
-    }
-  })
-});
+// const storage = cloudinaryStorage({
+//   cloudinary: cloudinary,
+//   folder: "demo",
+//   allowedFormats: ["jpg", "png"],
+//   transformation: [{ width: 500, height: 500, crop: "limit" }]
+//   });
+//   const parser = multer({ storage: storage });
 
 
 router.route('/products')
@@ -39,16 +37,19 @@ router.route('/products')
         }
       });
   })
-  .post([checkJWT, upload.single('product_picture')], (req, res, next) => {
-    console.log(upload);
+  .post([checkJWT, parser.single('image')], (req, res, next) => {
     console.log(req.file);
+    const image = {};
+    image.url = req.file.url;
+    image.id = req.file.public_id; 
+
     let product = new Product();
     product.owner = req.decoded.user._id;
     product.category = req.body.categoryId;
     product.title = req.body.title;
     product.price = req.body.price;
     product.description = req.body.description;
-   // product.image = req.file.location;
+    product.image = req.file.public_id;
     product.save();
     res.json({
       success: true,
